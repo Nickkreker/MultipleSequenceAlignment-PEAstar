@@ -1,5 +1,7 @@
 import numpy as np
 
+from typing import Dict, Tuple
+
 def load_pam250_matrix():
     '''
     Loads PAM-250 matrix from file.
@@ -15,8 +17,8 @@ def load_pam250_matrix():
                 pam250[(l_1, l_2)] = -int(dist)
     return pam250
 
-
-def get_alignment(str1, str2, pam250, print_res=False):
+def solve_alignment2d(str1, str2, pam250):
+    '''Calculates matrix of distances and matrix of parents in 2d.'''
     l1 = len(str1)
     l2 = len(str2)
     m = np.zeros((l1 + 1, l2 + 1))
@@ -43,9 +45,13 @@ def get_alignment(str1, str2, pam250, print_res=False):
                 mx = m[i, j-1] + 8
                 p[i, j] = 'l'
             m[i, j] = mx
+    return (m, p)
 
-    print(m)
-    print(p)
+def get_alignment(str1, str2, pam250):
+    '''Calculates alignment of two strings using dynamic programming.'''
+    m, p = solve_alignment2d(str1, str2, pam250)
+    l1 = len(str1)
+    l2 = len(str2)
     t = p[-1, -1]
     pos1 = l1
     pos2 = l2
@@ -72,3 +78,27 @@ def get_alignment(str1, str2, pam250, print_res=False):
             break
 
     return (align1, align2)
+
+def get_distances2d(seqs, pam250):
+    distances2d = {}
+    for i, seq1 in enumerate(seqs):
+        for j, seq2 in enumerate(seqs):
+            m, _ = solve_alignment2d(seq1[::-1], seq2[::-1], pam250)
+            distances2d[(i, j)] = m
+    return distances2d
+
+def calc_alignment_score(alignment: np.ndarray, score_matrix: Dict[Tuple[str, str], int], gap_penalty: int = 8) -> int:
+    r, c = alignment.shape
+    score = 0
+    for i in range(c):
+        for j in range(r): 
+            for k in range(r):
+                if j <= k:
+                    continue
+                if alignment[j][i] == '_' and alignment[k][i] == '_':
+                    score += 0
+                if alignment[j][i] == '_' or alignment[k][i] == '_':
+                    score += gap_penalty
+                else:
+                    score += score_matrix[(alignment[j][i], alignment[k][i])]
+    return score
