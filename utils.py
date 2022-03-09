@@ -1,6 +1,6 @@
 import numpy as np
 
-from typing import Dict, Tuple
+from typing import List, Dict, Tuple
 
 def load_pam250_matrix():
     '''
@@ -77,7 +77,7 @@ def get_alignment(str1, str2, pam250):
         elif t == ' ':
             break
 
-    return (align1, align2)
+    return np.array((align1, align2))
 
 def get_distances2d(seqs, pam250):
     distances2d = {}
@@ -102,3 +102,28 @@ def calc_alignment_score(alignment: np.ndarray, score_matrix: Dict[Tuple[str, st
                 else:
                     score += score_matrix[(alignment[j][i], alignment[k][i])]
     return score
+
+def make_alignment(goal, seqs: List[str]) -> np.ndarray:
+    seq_lengths = list(map(len, seqs))
+    alignment_length = 0
+    current = goal
+    while current.parent:
+        current = current.parent
+        alignment_length += 1
+
+    alignment = np.empty((len(seqs), alignment_length), dtype=str)
+    current = goal
+    c1 = goal.coords
+    t = 0
+    while current.parent:
+        c2 = current.parent.coords
+        for i in range(len(seqs)):
+            if c1[i] != c2[i]:
+                alignment[i][-t - 1] = seqs[i][seq_lengths[i] - 1]
+                seq_lengths[i] -= 1
+            else:
+                alignment[i][-t - 1] = '_'
+        current = current.parent
+        c1 = current.coords
+        t += 1
+    return alignment
